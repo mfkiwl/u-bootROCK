@@ -136,7 +136,7 @@ int sdram_detect_row(struct sdram_cap_info *cap_info,
 		     u32 coltmp, u32 bktmp, u32 rowtmp);
 int sdram_detect_row_3_4(struct sdram_cap_info *cap_info,
 			 u32 coltmp, u32 bktmp);
-int sdram_detect_high_row(struct sdram_cap_info *cap_info);
+int sdram_detect_high_row(struct sdram_cap_info *cap_info, u32 dramtype);
 int sdram_detect_cs1_row(struct sdram_cap_info *cap_info, u32 dram_type);
 u64 sdram_get_cs_cap(struct sdram_cap_info *cap_info, u32 cs, u32 dram_type);
 void sdram_copy_to_reg(u32 *dest, const u32 *src, u32 n);

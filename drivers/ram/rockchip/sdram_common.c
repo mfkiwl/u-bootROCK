@@ -381,10 +381,60 @@ int sdram_detect_row_3_4(struct sdram_cap_info *cap_info,
 	return 0;
 }
 
-int sdram_detect_high_row(struct sdram_cap_info *cap_info)
+int sdram_detect_high_row(struct sdram_cap_info *cap_info, u32 dramtype)
 {
-	cap_info->cs0_high16bit_row = cap_info->cs0_row;
-	cap_info->cs1_high16bit_row = cap_info->cs1_row;
+	unsigned long base_addr;
+	u32 cs0_high_row, cs1_high_row, cs;
+	u64 cap = 0, cs0_cap = 0;
+	u32 i;
+	void __iomem *test_addr, *test_addr1;
+
+	cs = cap_info->rank;
+	/* 8bit bandwidth no enable axi split*/
+	if (!cap_info->bw) {
+		cs0_high_row = cap_info->cs0_row;
+		cs1_high_row = cap_info->cs1_row;
+		goto out;
+	}
+
+	cs0_cap = sdram_get_cs_cap(cap_info, 0, dramtype);
+	if (cs == 2) {
+		base_addr = CONFIG_SYS_SDRAM_BASE + cs0_cap;
+		cap = sdram_get_cs_cap(cap_info, 1, dramtype);
+	} else {
+		base_addr = CONFIG_SYS_SDRAM_BASE;
+		cap = cs0_cap;
+	}
+	/* detect full bandwidth size */
+	for (i = 0; i < 4; i++) {
+		test_addr = (void __iomem *)base_addr;
+		test_addr1 = (void __iomem *)(base_addr +
+			     (unsigned long)(cap / (1ul << (i + 1))));
+		writel(0x0, test_addr);
+		writel(PATTERN, test_addr1);
+		if ((readl(test_addr) == 0x0) &&
+		    (readl(test_addr1) == PATTERN))
+			break;
+	}
+	if (i == 4 && cs == 1) {
+		printascii("can't support this cap\n");
+		return -1;
+	}
+
+	if (cs == 2) {
+		cs0_high_row = cap_info->cs0_row;
+		if (i == 4)
+			cs1_high_row = 0;
+		else
+			cs1_high_row = cap_info->cs1_row - i;
+	} else {
+		cs0_high_row = cap_info->cs0_row - i;
+		cs1_high_row = 0;
+	}
+
+out:
+	cap_info->cs0_high16bit_row = cs0_high_row;
+	cap_info->cs1_high16bit_row = cs1_high_row;
 
 	return 0;
 }
