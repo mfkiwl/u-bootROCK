@@ -1,5 +1,15 @@
 if ROCKCHIP_RV1126
 
+config TARGET_RV1126_ECM0
+	bool "Edgeble AI Edge Compute Module 0 SoM"
+	help
+	  Edge Compute Module 0 is a 96boards SoM-CB compute module based
+	  on Rockchip RV1126 from Edgeble AI.
+
+	  ECM0-Carrier:
+	  Edge Compute Module 0 needs to mount on top of this Carrier board
+          for creating Edge Compute Module 0 Carrier platform.
+
 config SOC_SPECIFIC_OPTIONS # dummy
 	def_bool y
 	select HAS_CUSTOM_SYS_INIT_SP_ADDR
@@ -39,5 +49,7 @@ config SYS_MALLOC_F_LEN
 
 config SYS_TEXT_BASE
 	default 0x600000
+
+source board/edgeble/edge-compute-module-0/Kconfig
 
 endif

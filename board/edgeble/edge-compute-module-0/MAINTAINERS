@@ -1,0 +1,6 @@
+RV1126-ECM0
+M:	Jagan Teki <jagan@edgeble.ai>
+S:	Maintained
+F:	board/edgeble-ai/edge-compute-module-0
+F:	include/configs/edge-compute-module-0.h
+F:	configs/ecm0-carrier-rv1126_defconfig
