@@ -8,3 +8,11 @@
 &sdio {
 	status = "disabled";
 };
+
+&usb_host0_ehci {
+	clocks = <&cru HCLK_USBHOST>, <&cru HCLK_USBHOST_ARB>;
+};
+
+&usb_host0_ohci {
+	clocks = <&cru HCLK_USBHOST>, <&cru HCLK_USBHOST_ARB>;
+};
