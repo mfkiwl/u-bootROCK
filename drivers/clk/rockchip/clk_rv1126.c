@@ -473,10 +473,48 @@ static int rv1126_pmuclk_set_parent(struct clk *clk, struct clk *parent)
 	}
 }
 
+static int rv1126_pmuclk_enable(struct clk *clk)
+{
+	struct rv1126_pmuclk_priv *priv = dev_get_priv(clk->dev);
+	struct rv1126_pmucru *pmucru = priv->pmucru;
+
+	printf("%s %ld\n", __func__, clk->id);
+	switch (clk->id) {
+	case CLK_USBPHY_HOST_REF:
+		rk_setreg(&pmucru->pmu_clksel_con[7], BIT(7));
+		break;
+	default:
+		printf("%s: Unsupported CLK#%ld\n", __func__, clk->id);
+		return -ENOENT;
+	}
+
+	return 0;
+}
+
+static int rv1126_pmuclk_disable(struct clk *clk)
+{
+	struct rv1126_pmuclk_priv *priv = dev_get_priv(clk->dev);
+	struct rv1126_pmucru *pmucru = priv->pmucru;
+
+	printf("%s %ld\n", __func__, clk->id);
+	switch (clk->id) {
+	case CLK_USBPHY_HOST_REF:
+		rk_clrreg(&pmucru->pmu_clksel_con[7], BIT(7));
+		break;
+	default:
+		printf("%s: Unsupported CLK#%ld\n", __func__, clk->id);
+		return -ENOENT;
+	}
+
+	return 0;
+}
+
 static struct clk_ops rv1126_pmuclk_ops = {
 	.get_rate = rv1126_pmuclk_get_rate,
 	.set_rate = rv1126_pmuclk_set_rate,
 	.set_parent = rv1126_pmuclk_set_parent,
+	.enable = rv1126_pmuclk_enable,
+	.disable = rv1126_pmuclk_disable,
 };
 
 static int rv1126_pmuclk_probe(struct udevice *dev)
