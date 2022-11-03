@@ -5,6 +5,7 @@
 #define USB_CLASS_HUB			9
 
 #include "rockchip-u-boot.dtsi"
+#include "rockchip-binman.dtsi"
 
 / {
 	aliases {
