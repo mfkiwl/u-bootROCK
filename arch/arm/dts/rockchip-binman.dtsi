@@ -24,7 +24,7 @@
 			};
 		};
 
-#ifdef CONFIG_ARM64
+#if defined(CONFIG_ARM64) || defined(CONFIG_SPL_OPTEE_IMAGE)
 		blob {
 			filename = "u-boot.itb";
 #else
