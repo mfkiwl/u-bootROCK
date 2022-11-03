@@ -12,6 +12,7 @@
 #include <asm/io.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/arch-rockchip/hardware.h>
+#include <asm/arch-rockchip/rk_atags.h>
 #include <asm/arch-rockchip/cru_rv1126.h>
 #include <asm/arch-rockchip/grf_rv1126.h>
 #include <asm/arch-rockchip/sdram_common.h>
@@ -2327,6 +2328,68 @@ static void enable_low_power(struct dram_info *dram,
 	setbits_le32(pctl_base + DDR_PCTL2_PWRCTL, (1 << 3));
 }
 
+static void ddr_set_atags(struct dram_info *dram,
+			  struct rv1126_sdram_params *sdram_params)
+{
+	struct sdram_cap_info *cap_info = &sdram_params->ch.cap_info;
+	u32 dram_type = sdram_params->base.dramtype;
+	void __iomem *pctl_base = dram->pctl;
+	struct tag_serial t_serial;
+	struct tag_ddr_mem t_ddrmem;
+	struct tag_soc_info t_socinfo;
+	u64 cs_cap[2];
+	u32 cs_pst = 0;
+	u32 split, split_size;
+	u64 reduce_cap = 0;
+
+	cs_cap[0] = sdram_get_cs_cap(cap_info, 0, dram_type);
+	cs_cap[1] = sdram_get_cs_cap(cap_info, 1, dram_type);
+
+	memset(&t_serial, 0, sizeof(struct tag_serial));
+
+	t_serial.version = 0;
+	t_serial.enable = 1;
+	t_serial.addr = CONFIG_DEBUG_UART_BASE;
+	t_serial.baudrate = CONFIG_BAUDRATE;
+	t_serial.m_mode = SERIAL_M_MODE_M0;
+	t_serial.id = 2;
+
+	atags_destroy();
+	atags_set_tag(ATAG_SERIAL,  &t_serial);
+
+	split = readl(&dram->ddrgrf->grf_ddrsplit_con);
+	memset(&t_ddrmem, 0, sizeof(struct tag_ddr_mem));
+	if (cap_info->row_3_4) {
+		cs_cap[0] =  cs_cap[0] * 3 / 4;
+		cs_cap[1] =  cs_cap[1] * 3 / 4;
+	} else if (!(split & (1 << SPLIT_BYPASS_OFFSET))) {
+		split_size = (split >> SPLIT_SIZE_OFFSET) & SPLIT_SIZE_MASK;
+		reduce_cap = (cs_cap[0] + cs_cap[1] - (split_size << 24)) / 2;
+	}
+	t_ddrmem.version = 0;
+	t_ddrmem.bank[0] = CONFIG_SYS_SDRAM_BASE;
+	if (cs_cap[1]) {
+		cs_pst = (readl(pctl_base + DDR_PCTL2_ADDRMAP0) & 0x1f) +
+			6 + 2;
+	}
+
+	if (cs_cap[1] && cs_pst > 27) {
+		t_ddrmem.count = 2;
+		t_ddrmem.bank[1] = 1 << cs_pst;
+		t_ddrmem.bank[2] = cs_cap[0];
+		t_ddrmem.bank[3] = cs_cap[1] - reduce_cap;
+	} else {
+		t_ddrmem.count = 1;
+		t_ddrmem.bank[1] = (u64)cs_cap[0] + (u64)cs_cap[1] - reduce_cap;
+	}
+
+	atags_set_tag(ATAG_DDR_MEM,  &t_ddrmem);
+
+	memset(&t_socinfo, 0, sizeof(struct tag_soc_info));
+	t_socinfo.version = 0;
+	t_socinfo.name = 0x1126;
+}
+
 static void print_ddr_info(struct rv1126_sdram_params *sdram_params)
 {
 	u32 split;
@@ -3482,6 +3545,7 @@ static int rv1126_dmc_init(struct udevice *dev)
 	ddr_set_rate_for_fsp(&dram_info, sdram_params);
 	copy_fsp_param_to_ddr();
 
+	ddr_set_atags(&dram_info, sdram_params);
 #if defined(CONFIG_CMD_DDR_TEST_TOOL)
 	save_rw_trn_result_to_ddr(&rw_trn_result);
 #endif

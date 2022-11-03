@@ -304,6 +304,7 @@ config ROCKCHIP_RV1108
 config ROCKCHIP_RV1126
 	bool "Support Rockchip RV1126"
 	select CPU_V7A
+	select HAS_ROM
 	select SKIP_LOWLEVEL_INIT_ONLY
 	select TPL
 	select SUPPORT_TPL
@@ -474,6 +475,14 @@ config ROCKCHIP_SPI_IMAGE
 	  Some Rockchip SoCs support booting from SPI flash. Enable this
 	  option to produce a SPI-flash image containing U-Boot. The image
 	  is built by binman. U-Boot sits near the start of the image.
+
+config ROCKCHIP_PRELOADER_ATAGS
+	bool "Rockchip pre-loader atags"
+	default y if ARCH_ROCKCHIP
+	help
+	  This enable support Rockchip atags among pre-loaders, i.e. ddr, miniloader, ATF,
+	  tos, U-Boot, etc. It delivers boot and configure information, shared with pre-loaders
+	  and finally ends with U-Boot.
 
 config LNX_KRNL_IMG_TEXT_OFFSET_BASE
 	default TEXT_BASE
