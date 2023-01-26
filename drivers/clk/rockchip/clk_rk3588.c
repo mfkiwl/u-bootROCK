@@ -35,6 +35,7 @@ static struct rockchip_pll_rate_table rk3588_pll_rates[] = {
 	RK3588_PLL_RATE(816000000, 2, 272, 2, 0),
 	RK3588_PLL_RATE(786432000, 2, 262, 2, 9437),
 	RK3588_PLL_RATE(786000000, 1, 131, 2, 0),
+	RK3588_PLL_RATE(742500000, 4, 495, 2, 0),
 	RK3588_PLL_RATE(722534400, 8, 963, 2, 24850),
 	RK3588_PLL_RATE(600000000, 2, 200, 2, 0),
 	RK3588_PLL_RATE(594000000, 2, 198, 2, 0),
@@ -266,7 +267,7 @@ static ulong rk3588_top_get_clk(struct rk3588_clk_priv *priv, ulong clk_id)
 		if (sel == ACLK_TOP_ROOT_SRC_SEL_CPLL)
 			prate = priv->cpll_hz;
 		else
-			prate = priv->cpll_hz;
+			prate = priv->gpll_hz;
 		return DIV_TO_RATE(prate, div);
 	case ACLK_LOW_TOP_ROOT:
 		con = readl(&cru->clksel_con[8]);
@@ -1063,10 +1064,8 @@ static ulong rk3588_dclk_vop_get_clk(struct rk3588_clk_priv *priv, ulong clk_id)
 					       priv->cru, V0PLL);
 	else if (sel == DCLK_VOP_SRC_SEL_GPLL)
 		parent = priv->gpll_hz;
-	else if (sel == DCLK_VOP_SRC_SEL_CPLL)
-		parent = priv->cpll_hz;
 	else
-		return -ENOENT;
+		parent = priv->cpll_hz;
 
 	return DIV_TO_RATE(parent, div);
 }
@@ -1922,29 +1921,6 @@ static int rk3588_clk_probe(struct udevice *dev)
 					      priv->cru, LPLL);
 		priv->armclk_init_hz = priv->armclk_enter_hz;
 	}
-#endif
-
-#ifndef CONFIG_SPL_BUILD
-	struct clk clk;
-
-	if (!priv->armclk_enter_hz) {
-		clk.id = SCMI_CLK_CPUL;
-		ret = clk_set_rate(&clk, CPU_PVTPLL_HZ);
-		if (ret < 0) {
-			printf("Failed to set cpubl\n");
-		} else {
-			priv->armclk_enter_hz = CPU_PVTPLL_HZ;
-			priv->armclk_init_hz = CPU_PVTPLL_HZ;
-		}
-	}
-	clk.id = SCMI_CLK_CPUB01;
-	ret = clk_set_rate(&clk, CPU_PVTPLL_HZ);
-	if (ret < 0)
-		printf("Failed to set cpub01\n");
-	clk.id = SCMI_CLK_CPUB23;
-	ret = clk_set_rate(&clk, CPU_PVTPLL_HZ);
-	if (ret < 0)
-		printf("Failed to set cpub23\n");
 #endif
 
 	priv->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
