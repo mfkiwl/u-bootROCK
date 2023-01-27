@@ -7,12 +7,12 @@
 
 / {
 	aliases {
-		mmc0 = &sdmmc;
+		mmc0 = &sdhci;
 	};
 
 	chosen {
 		stdout-path = &uart2;
-		u-boot,spl-boot-order = &sdmmc;
+		u-boot,spl-boot-order = &sdhci;
 	};
 };
 

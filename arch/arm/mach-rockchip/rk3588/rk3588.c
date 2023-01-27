@@ -26,6 +26,19 @@ DECLARE_GLOBAL_DATA_PTR;
 #define FW_SYSM_MST21_REG		0x94
 #define FW_SYSM_MST26_REG		0xa8
 #define FW_SYSM_MST27_REG		0xac
+#define SYS_GRF_BASE			0xfd58c000
+#define SYS_GRF_SOC_CON6		0x0318
+#define USBGRF_BASE			0xfd5ac000
+#define USB_GRF_USB3OTG0_CON1		0x001c
+#define BUS_SGRF_BASE			0xfd586000
+#define BUS_SGRF_FIREWALL_CON18		0x288
+#define PMU_BASE			0xfd8d0000
+#define PMU_PWR_GATE_SFTCON1		0x8150
+
+#define USB2PHY1_GRF_BASE		0xfd5d4000
+#define USB2PHY2_GRF_BASE		0xfd5d8000
+#define USB2PHY3_GRF_BASE		0xfd5dc000
+#define USB2PHY_GRF_CON2		0x0008
 
 #define PMU1_IOC_BASE			0xfd5f0000
 #define PMU2_IOC_BASE			0xfd5f4000
@@ -36,6 +49,26 @@ DECLARE_GLOBAL_DATA_PTR;
 #define BUS_IOC_GPIO2D_IOMUX_SEL_L	0x58
 #define BUS_IOC_GPIO2D_IOMUX_SEL_H	0x5c
 #define BUS_IOC_GPIO3A_IOMUX_SEL_L	0x60
+
+#define VCCIO3_5_IOC_BASE		0xfd5fa000
+#define IOC_VCCIO3_5_GPIO2A_DS_H	0x44
+#define IOC_VCCIO3_5_GPIO2B_DS_L	0x48
+#define IOC_VCCIO3_5_GPIO2B_DS_H	0x4c
+#define IOC_VCCIO3_5_GPIO3A_DS_L	0x60
+#define IOC_VCCIO3_5_GPIO3A_DS_H	0x64
+#define IOC_VCCIO3_5_GPIO3C_DS_H	0x74
+
+#define EMMC_IOC_BASE			0xfd5fd000
+#define EMMC_IOC_GPIO2A_DS_L		0x40
+#define EMMC_IOC_GPIO2D_DS_L		0x58
+#define EMMC_IOC_GPIO2D_DS_H		0x5c
+
+#define CRU_BASE			0xfd7c0000
+#define CRU_SOFTRST_CON77		0x0b34
+
+#define PMU1CRU_BASE			0xfd7f0000
+#define PMU1CRU_SOFTRST_CON03		0x0a0c
+#define PMU1CRU_SOFTRST_CON04		0x0a10
 
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/mmc@fe2e0000",
@@ -156,6 +189,35 @@ int arch_cpu_init(void)
 	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST27_REG);
 	secure_reg &= 0xffff0000;
 	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST27_REG);
+
+		/* Select clk_tx source as default for i2s2/i2s3 */
+	writel(0x03400340, SYS_GRF_BASE + SYS_GRF_SOC_CON6);
+
+	if (readl(BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_L) == 0x2222) {
+		/* Set the fspi m0 io ds level to 55ohm */
+		writel(0x00070002, EMMC_IOC_BASE + EMMC_IOC_GPIO2A_DS_L);
+		writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_L);
+		writel(0x07000200, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_H);
+	} else if (readl(BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_L) == 0x1111) {
+		/*
+		 * Set the emmc io drive strength:
+		 * data and cmd: 50ohm
+		 * clock: 25ohm
+		 */
+		writel(0x00770052, EMMC_IOC_BASE + EMMC_IOC_GPIO2A_DS_L);
+		writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_L);
+		writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_H);
+	} else if ((readl(BUS_IOC_BASE + BUS_IOC_GPIO2B_IOMUX_SEL_L) & 0xf0ff) == 0x3033) {
+		/* Set the fspi m1 io ds level to 55ohm */
+		writel(0x33002200, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2A_DS_H);
+		writel(0x30332022, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2B_DS_L);
+		writel(0x00030002, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2B_DS_H);
+	} else if (readl(BUS_IOC_BASE + BUS_IOC_GPIO3A_IOMUX_SEL_L) == 0x5555) {
+		/* Set the fspi m2 io ds level to 55ohm */
+		writel(0x77772222, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3A_DS_L);
+		writel(0x00700020, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3A_DS_H);
+		writel(0x00070002, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3C_DS_H);
+	}
 
 	/* Set emmc iomux for good extension if the emmc is not the boot device */
 	writel(0xffff1111, BUS_IOC_BASE + BUS_IOC_GPIO2A_IOMUX_SEL_L);
