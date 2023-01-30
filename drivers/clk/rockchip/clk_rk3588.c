@@ -1747,6 +1747,8 @@ static ulong rk3588_clk_set_rate(struct clk *clk, ulong rate)
 		ret = rk3588_pciephy_set_rate(priv, clk->id, rate);
 		break;
 #endif
+	case SCLK_SDMMC_SAMPLE:
+		break;
 	default:
 		return -ENOENT;
 	}
