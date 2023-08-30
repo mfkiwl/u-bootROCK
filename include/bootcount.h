@@ -102,8 +102,14 @@ static inline int bootcount_error(void)
 
 	if (bootlimit && bootcount > bootlimit) {
 		printf("Warning: Bootlimit (%lu) exceeded.", bootlimit);
-		if (!(gd->flags & GD_FLG_SPL_INIT))
+		if (!(gd->flags & GD_FLG_SPL_INIT)) {
+			if(env_get_ulong("bootflow_seq", 10, 0) == 0)
+				env_set_ulong("bootflow_seq", 1);
+			else
+				env_set_ulong("bootflow_seq", 0);
 			printf(" Using altbootcmd.");
+
+		}
 		printf("\n");
 
 		return 1;
